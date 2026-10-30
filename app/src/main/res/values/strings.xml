@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">easypub</string>
+
+    <!-- Allgemein -->
+    <string name="back">Zurück</string>
+    <string name="cancel">Abbrechen</string>
+
+    <!-- Libraries (Startseite) -->
+    <string name="libraries_title">Bibliothek</string>
+    <string name="libraries_add">Library hinzufügen</string>
+    <string name="libraries_empty_title">Noch keine Libraries</string>
+    <string name="libraries_empty_message">Wähle einen Ordner mit deinen EPUBs aus oder lege einen neuen an. Die Dateien bleiben dort, wo sie sind.</string>
+    <plurals name="book_count">
+        <item quantity="one">%d Buch</item>
+        <item quantity="other">%d Bücher</item>
+    </plurals>
+
+    <!-- Library -->
+    <string name="library_rescan">Neu einlesen</string>
+    <string name="library_remove">Entfernen</string>
+    <string name="library_remove_title">„%1$s“ entfernen?</string>
+    <string name="library_remove_message">Die Library wird nur aus easypub entfernt. Der Ordner und alle Dateien darin bleiben erhalten.</string>
+    <string name="library_remove_confirm">Entfernen</string>
+    <string name="library_no_access_short">Kein Zugriff</string>
+    <string name="library_no_access_title">Kein Zugriff auf den Ordner</string>
+    <string name="library_no_access_message">Der Ordner wurde verschoben, gelöscht oder der Zugriff wurde entzogen. Wähle ihn erneut aus, der Lesefortschritt bleibt erhalten.</string>
+    <string name="library_select_folder_again">Ordner erneut auswählen</string>
+    <string name="library_scanning_title">Bücher werden eingelesen …</string>
+    <string name="library_scanning_message">Das kann bei vielen Büchern einen Moment dauern.</string>
+    <string name="library_empty_title">Keine EPUBs gefunden</string>
+    <string name="library_empty_message">Lege EPUB-Dateien in diesen Ordner oder einen Unterordner und lies die Library neu ein.</string>
+
+    <!-- Suche -->
+    <string name="search_placeholder">Titel oder Autor suchen</string>
+    <string name="search_clear">Suche leeren</string>
+    <string name="search_no_results_title">Keine Treffer</string>
+    <string name="search_no_results_message">Kein Buch passt zu „%1$s“.</string>
+
+    <!-- Reader -->
+    <string name="reader_font_size_percent">%1$d %%</string>
+    <string name="reader_switch_to_dark">Buch dunkel anzeigen</string>
+    <string name="reader_switch_to_light">Buch hell anzeigen</string>
+
+    <!-- Einstellungen -->
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_appearance">Darstellung</string>
+    <string name="settings_theme_system">Wie System</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_theme_hint">Gilt für die App. Der Buchinhalt lässt sich im Reader separat zwischen hell und dunkel umschalten.</string>
+
+    <!-- Hinweise -->
+    <string name="message_library_exists">Dieser Ordner ist bereits eine Library.</string>
+    <string name="message_library_removed">Library entfernt. Die Dateien sind weiterhin im Ordner.</string>
+    <string name="message_folder_access_failed">Auf diesen Ordner kann nicht zugegriffen werden.</string>
+    <string name="message_scan_failed">Die Library konnte nicht eingelesen werden.</string>
+    <string name="message_book_open_failed">Das Buch konnte nicht geöffnet werden.</string>
+</resources>

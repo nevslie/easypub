@@ -65,7 +65,7 @@ Die App soll **berechtigungsarm** bleiben.
 | Architektur | MVVM (ViewModel + Repository), Dependency Injection vorerst manuell |
 | Min. Android | API 26 (Android 8) |
 
-Die **Dateien sind die Quelle der Wahrheit**. Die Datenbank ist nur ein Index bzw. Cache und kann jederzeit durch einen neuen Scan aufgebaut werden. Cover werden beim Scan extrahiert und im Cache-Verzeichnis der App abgelegt.
+Die **Dateien sind die Quelle der Wahrheit**. Die Datenbank ist nur ein Index bzw. Cache und kann jederzeit durch einen neuen Scan aufgebaut werden. Cover werden beim Scan extrahiert und im internen Speicher der App abgelegt (`files/covers`). Der Cache-Ordner wäre ungeeignet, weil Android ihn jederzeit leeren darf und unveränderte Bücher beim Scan nicht neu eingelesen werden.
 
 ### Datenmodell
 
