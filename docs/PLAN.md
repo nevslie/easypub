@@ -93,6 +93,7 @@ So ist es für spätere Erweiterungen gedacht: Tags und Kategorien kommen als ei
 ## Später (nicht V1)
 
 - Am weitesten gelesene Stelle ([#1](https://github.com/nevslie/easypub/issues/1))
+- EPUBs in eine Library importieren ([#2](https://github.com/nevslie/easypub/issues/2))
 - Tags und Kategorien, um Libraries in Abteilungen zu unterteilen
 - Auswahl der Schriftart im Reader
 - Ansicht „Alle Bücher“ über alle Libraries hinweg
