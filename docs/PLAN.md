@@ -77,17 +77,18 @@ So ist es für spätere Erweiterungen gedacht: Tags und Kategorien kommen als ei
 ## Verteilung & Testen
 
 - Kein Play Store. Die APK wird über **GitHub Actions** gebaut und als **GitHub Release** veröffentlicht.
+- Die GitHub Actions richtet nevslie **selbst als Übung** ein (bei Bedarf mit Unterstützung). Sie sind nicht Teil der V1-Meilensteine und kommen später.
 - Für signierte Releases muss ein Keystore als GitHub-Secret hinterlegt werden.
 - Getestet wird in Android Studio, im Emulator oder auf dem eigenen Gerät.
 
 ## Meilensteine V1
 
-1. **Projekt-Setup:** Gradle, Compose, Theme (Pastell, Light/Dark), Navigation, GitHub Actions baut die APK
+1. **Projekt-Setup:** Gradle, Compose, Theme (Pastell, Light/Dark), Navigation
 2. **Libraries:** hinzufügen (Ordnerauswahl), entfernen, Grid anzeigen, Berechtigungen dauerhaft halten
 3. **Scan & Index:** EPUBs rekursiv finden, Metadaten und Cover über Readium auslesen, in Room speichern, Änderungen erkennen
 4. **Library-Ansicht:** Bücher-Grid mit Cover, Titel, Autor und Fortschritt, Suche
 5. **Reader:** Readium Navigator im Scroll-Modus, Leiste mit Hell/Dunkel-Umschalter und Schriftgröße, Lesefortschritt speichern und wiederherstellen
-6. **Feinschliff:** leere Zustände, Fehlerfälle (z. B. Ordner gelöscht oder Zugriff entzogen), App-Icon, Release-Workflow
+6. **Feinschliff:** leere Zustände, Fehlerfälle (z. B. Ordner gelöscht oder Zugriff entzogen), App-Icon
 
 ## Später (nicht V1)
 
