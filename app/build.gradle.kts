@@ -19,8 +19,27 @@ android {
         versionName = "0.1.0"
     }
 
+    // Signierung für Release-Builds. Die Werte kommen aus Umgebungsvariablen,
+    // die der GitHub-Workflow aus den Repository-Secrets setzt.
+    // Lokal (ohne diese Variablen) entsteht weiterhin eine unsignierte Release-APK.
+    val releaseKeystore = System.getenv("SIGNING_KEYSTORE_PATH")
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseKeystore != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
