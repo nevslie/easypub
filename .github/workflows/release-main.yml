@@ -1,0 +1,98 @@
+# Baut nach jedem Merge (= Push) auf main eine signierte Release-APK
+# und veröffentlicht sie als GitHub Release.
+#
+# Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
+#   SIGNING_KEYSTORE_BASE64    Keystore-Datei (.jks), base64-kodiert
+#   SIGNING_KEYSTORE_PASSWORD  Passwort des Keystores
+#   SIGNING_KEY_ALIAS          Alias des Schlüssels im Keystore
+#   SIGNING_KEY_PASSWORD       Passwort des Schlüssels
+#
+# Der Release-Name kommt aus versionName in app/build.gradle.kts (z. B. v0.1.0).
+# Gibt es diesen Release schon, bricht der Workflow ab: vorher versionName
+# (und versionCode) erhöhen.
+name: Release (main)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write # nötig, um Tags und Releases anzulegen
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v5
+
+      - name: Version auslesen
+        id: version
+        run: |
+          VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts)
+          if [ -z "$VERSION" ]; then
+            echo "::error::versionName in app/build.gradle.kts nicht gefunden"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      - name: Prüfen, ob es den Release schon gibt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" > /dev/null 2>&1; then
+            echo "::error::Release v${{ steps.version.outputs.version }} existiert bereits. Bitte versionName und versionCode in app/build.gradle.kts erhöhen."
+            exit 1
+          fi
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Unit-Tests ausführen
+        run: ./gradlew testReleaseUnitTest
+
+      - name: Keystore aus Secret wiederherstellen
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "::error::Secret SIGNING_KEYSTORE_BASE64 fehlt. Siehe Kommentar oben in dieser Datei."
+            exit 1
+          fi
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Signierte Release-APK bauen
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: APK umbenennen
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk \
+             "easypub-v${{ steps.version.outputs.version }}.apk"
+
+      - name: GitHub Release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            "easypub-v${{ steps.version.outputs.version }}.apk" \
+            --target "${{ github.sha }}" \
+            --title "EasyPub v${{ steps.version.outputs.version }}" \
+            --generate-notes
+
+      - name: Keystore löschen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
