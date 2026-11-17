@@ -1,11 +1,15 @@
 # Ein Workflow für beide Branches, aufgeteilt in zwei Jobs:
 #
-#   test ──needs──▶ release
+#   test ──────────┐
+#                  ├──needs──▶ release
+#   check-version ─┘
 #
-# test     läuft bei jedem Push auf development und main:
-#          Unit-Tests, Debug-APK bauen und als Workflow-Artefakt hochladen.
-# release  läuft nur auf main und nur, wenn test erfolgreich war:
-#          signierte Release-APK bauen und als GitHub Release veröffentlichen.
+# test           läuft bei jedem Push auf development und main:
+#                Unit-Tests, Debug-APK bauen und als Workflow-Artefakt hochladen.
+# check-version  läuft nur auf main: liest versionName aus und prüft,
+#                ob es dafür schon einen Release gibt.
+# release        läuft nur, wenn test erfolgreich war UND die Version neu ist:
+#                signierte Release-APK bauen und als GitHub Release veröffentlichen.
 #
 # Benötigte Repository-Secrets für den Release (Settings → Secrets and variables → Actions):
 #   SIGNING_KEYSTORE_BASE64    Keystore-Datei (.jks), base64-kodiert
@@ -14,8 +18,8 @@
 #   SIGNING_KEY_PASSWORD       Passwort des Schlüssels
 #
 # Der Release-Name kommt aus versionName in app/build.gradle.kts (z. B. v0.1.0).
-# Gibt es diesen Release schon, bricht der Job ab: vorher versionName
-# (und versionCode) erhöhen.
+# Gibt es diesen Release schon, wird der Release übersprungen (kein Fehler).
+# Für einen neuen Release also versionName (und versionCode) erhöhen.
 name: CI
 
 on:
@@ -61,18 +65,15 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
-  release:
-    name: Signierter Release
-    # Verbindung der Jobs: release startet erst, wenn test erfolgreich war.
-    needs: test
-    # Nur auf main. Auf development wird dieser Job als "übersprungen" angezeigt.
+  check-version:
+    name: Version prüfen
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
-    # Jeder Job läuft auf einem eigenen, frischen Runner. Deshalb werden
-    # Checkout, JDK und Gradle hier erneut eingerichtet.
-    permissions:
-      contents: write # nötig, um Tags und Releases anzulegen
+    # Job-Outputs: Werte, die andere Jobs über needs.check-version.outputs.<name> lesen können.
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_new: ${{ steps.exists.outputs.is_new }}
 
     steps:
       - name: Code auschecken
@@ -90,13 +91,37 @@ jobs:
           echo "Version: $VERSION"
 
       - name: Prüfen, ob es den Release schon gibt
+        id: exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "v${{ steps.version.outputs.version }}" > /dev/null 2>&1; then
-            echo "::error::Release v${{ steps.version.outputs.version }} existiert bereits. Bitte versionName und versionCode in app/build.gradle.kts erhöhen."
-            exit 1
+            echo "is_new=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Release v${{ steps.version.outputs.version }} gibt es schon. Kein neuer Release. Für einen Release versionName erhöhen."
+          else
+            echo "is_new=true" >> "$GITHUB_OUTPUT"
           fi
+
+  release:
+    name: Signierter Release
+    # Verbindung der Jobs: release wartet auf beide Jobs und nutzt deren Ergebnisse.
+    needs: [test, check-version]
+    # Nur wenn die Version neu ist. check-version läuft nur auf main,
+    # daher wird release auf development automatisch übersprungen.
+    if: needs.check-version.outputs.is_new == 'true'
+    runs-on: ubuntu-latest
+
+    # Jeder Job läuft auf einem eigenen, frischen Runner. Deshalb werden
+    # Checkout, JDK und Gradle hier erneut eingerichtet.
+    permissions:
+      contents: write # nötig, um Tags und Releases anzulegen
+
+    env:
+      VERSION: ${{ needs.check-version.outputs.version }}
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v5
 
       - name: JDK 17 einrichten
         uses: actions/setup-java@v5
@@ -126,18 +151,15 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: APK umbenennen
-        run: |
-          cp app/build/outputs/apk/release/app-release.apk \
-             "easypub-v${{ steps.version.outputs.version }}.apk"
+        run: cp app/build/outputs/apk/release/app-release.apk "easypub-v$VERSION.apk"
 
       - name: GitHub Release anlegen
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "v${{ steps.version.outputs.version }}" \
-            "easypub-v${{ steps.version.outputs.version }}.apk" \
+          gh release create "v$VERSION" "easypub-v$VERSION.apk" \
             --target "${{ github.sha }}" \
-            --title "EasyPub v${{ steps.version.outputs.version }}" \
+            --title "EasyPub v$VERSION" \
             --generate-notes
 
       - name: Keystore löschen
