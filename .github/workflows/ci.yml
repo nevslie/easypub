@@ -1,28 +1,78 @@
-# Baut nach jedem Merge (= Push) auf main eine signierte Release-APK
-# und veröffentlicht sie als GitHub Release.
+# Ein Workflow für beide Branches, aufgeteilt in zwei Jobs:
 #
-# Benötigte Repository-Secrets (Settings → Secrets and variables → Actions):
+#   test ──needs──▶ release
+#
+# test     läuft bei jedem Push auf development und main:
+#          Unit-Tests, Debug-APK bauen und als Workflow-Artefakt hochladen.
+# release  läuft nur auf main und nur, wenn test erfolgreich war:
+#          signierte Release-APK bauen und als GitHub Release veröffentlichen.
+#
+# Benötigte Repository-Secrets für den Release (Settings → Secrets and variables → Actions):
 #   SIGNING_KEYSTORE_BASE64    Keystore-Datei (.jks), base64-kodiert
 #   SIGNING_KEYSTORE_PASSWORD  Passwort des Keystores
 #   SIGNING_KEY_ALIAS          Alias des Schlüssels im Keystore
 #   SIGNING_KEY_PASSWORD       Passwort des Schlüssels
 #
 # Der Release-Name kommt aus versionName in app/build.gradle.kts (z. B. v0.1.0).
-# Gibt es diesen Release schon, bricht der Workflow ab: vorher versionName
+# Gibt es diesen Release schon, bricht der Job ab: vorher versionName
 # (und versionCode) erhöhen.
-name: Release (main)
+name: CI
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [development, main]
+  workflow_dispatch: # erlaubt zusätzlich einen manuellen Start im Actions-Tab
 
+# Standard für alle Jobs: nur lesen. Der Release-Job bekommt unten mehr Rechte.
 permissions:
-  contents: write # nötig, um Tags und Releases anzulegen
+  contents: read
 
 jobs:
-  release:
+  test:
+    name: Tests und Debug-Build
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Code auschecken
+        uses: actions/checkout@v5
+
+      - name: JDK 17 einrichten
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Richtet Gradle ein und cached Abhängigkeiten zwischen den Läufen.
+      # Das Android SDK ist auf ubuntu-latest bereits vorinstalliert.
+      - name: Gradle einrichten
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Unit-Tests ausführen
+        run: ./gradlew testDebugUnitTest
+
+      - name: Debug-APK bauen
+        run: ./gradlew assembleDebug
+
+      # Die APK bleibt einige Tage im Workflow-Lauf zum Herunterladen liegen.
+      - name: Debug-APK hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: easypub-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  release:
+    name: Signierter Release
+    # Verbindung der Jobs: release startet erst, wenn test erfolgreich war.
+    needs: test
+    # Nur auf main. Auf development wird dieser Job als "übersprungen" angezeigt.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    # Jeder Job läuft auf einem eigenen, frischen Runner. Deshalb werden
+    # Checkout, JDK und Gradle hier erneut eingerichtet.
+    permissions:
+      contents: write # nötig, um Tags und Releases anzulegen
 
     steps:
       - name: Code auschecken
@@ -56,9 +106,6 @@ jobs:
 
       - name: Gradle einrichten
         uses: gradle/actions/setup-gradle@v5
-
-      - name: Unit-Tests ausführen
-        run: ./gradlew testReleaseUnitTest
 
       - name: Keystore aus Secret wiederherstellen
         env:
